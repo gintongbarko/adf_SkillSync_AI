@@ -10,5 +10,13 @@
             </choice>
         </element>
         <element label="Requirements" max_length="4000" name="u_requirements" type="string"/>
+        <element label="Required Skills" max_length="2000" name="u_required_skills" type="string"/>
+        <element label="Preferred Skills" max_length="2000" name="u_preferred_skills" type="string"/>
+        <element label="Min Experience Years" name="u_min_experience_years" type="decimal"/>
+        <element label="Embedding Model" max_length="100" name="u_embedding_model" type="string"/>
+        <element label="Embedding Version" max_length="40" name="u_embedding_version" type="string"/>
+        <element label="Embedded At" name="u_embedded_at" type="date_time"/>
+        <element label="Embedding Dim" name="u_embedding_dim" type="integer"/>
+        <element label="Embedding Error" max_length="1000" name="u_embedding_error" type="string"/>
     </element>
 </database>

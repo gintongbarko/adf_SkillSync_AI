@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sys_rest_message">
-    <sys_rest_message action="INSERT_OR_UPDATE">
+    <sys_rest_message action="DELETE">
         <access>package_private</access>
         <authentication_type>no_authentication</authentication_type>
         <basic_auth_password/>
@@ -26,3 +26,4 @@
         <use_mutual_auth>false</use_mutual_auth>
     </sys_rest_message>
 </record_update>
+

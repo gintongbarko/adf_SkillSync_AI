@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function(spUtil) {
+  var c = this;
+  c.loading = false;
+  c.actionBusy = false;
+  c.error = '';
+  c.message = '';
+  c.internships = [];
+  c.applicants = [];
+  c.selectedInternship = '';
+  c.notes = {};
+
+  function applyData() {
+    c.error = c.data.error || '';
+    c.message = c.data.message || '';
+    c.internships = c.data.internships || [];
+    c.applicants = c.data.applicants || [];
+    if (c.data.selected_internship)
+      c.selectedInternship = c.data.selected_internship;
+  }
+
+  c.selectInternship = function(sysId) {
+    c.selectedInternship = sysId;
+    c.notes = {};
+    c.refresh();
+  };
+
+  c.refresh = function() {
+    c.loading = true;
+    c.data.action = 'load';
+    c.data.internship = c.selectedInternship;
+    spUtil.update(c).then(function() {
+      c.loading = false;
+      applyData();
+    }, function() {
+      c.loading = false;
+      c.error = 'Could not load applicants.';
+    });
+  };
+
+  c.setStatus = function(applicationSysId, status) {
+    if (c.actionBusy)
+      return;
+
+    c.actionBusy = true;
+    c.error = '';
+    c.message = '';
+    c.data.action = 'set_status';
+    c.data.application = applicationSysId;
+    c.data.status = status;
+    c.data.note = c.notes[applicationSysId] || '';
+    c.data.internship = c.selectedInternship;
+
+    spUtil.update(c).then(function() {
+      c.actionBusy = false;
+      applyData();
+      c.notes[applicationSysId] = '';
+    }, function() {
+      c.actionBusy = false;
+      c.error = 'Could not update the application status.';
+    });
+  };
+
+  c.refresh();
+};]]></client_script>
+        <controller_as>c</controller_as>
+        <css><![CDATA[.skillsync-review h3 {
+  margin-bottom: 12px;
+}
+.skillsync-review .skillsync-error {
+  color: #b00020;
+}
+.skillsync-review .skillsync-message {
+  color: #1b7f3a;
+}
+.skillsync-review .skillsync-filters {
+  margin-bottom: 16px;
+}
+.skillsync-review .skillsync-filters select {
+  min-width: 320px;
+}
+.skillsync-review table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.skillsync-review th,
+.skillsync-review td {
+  border: 1px solid #d8d8d8;
+  padding: 8px;
+  vertical-align: top;
+}
+.skillsync-review th {
+  background: #f3f3f3;
+}
+.skillsync-review .skillsync-score {
+  font-weight: bold;
+}
+.skillsync-review .skillsync-rank {
+  font-weight: bold;
+}
+.skillsync-review .skillsync-note {
+  width: 100%;
+  min-width: 160px;
+}
+.skillsync-review .skillsync-actions button {
+  margin: 2px;
+}
+]]></css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>false</has_preview>
+        <id>recruiter-review</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+
+}]]></link>
+        <name>Recruiter Review</name>
+        <option_schema/>
+        <public>false</public>
+        <roles>x_2311790_skills_0.admin,x_2311790_skills_0.recruiter</roles>
+        <script><![CDATA[(function() {
+  data.internships = [];
+  data.applicants = [];
+  data.error = '';
+  data.message = '';
+  data.selected_internship = input && input.internship ? input.internship : (data.selected_internship || '');
+
+  var adminRole = 'x_2311790_skills_0.admin';
+  var recruiterRole = 'x_2311790_skills_0.recruiter';
+  var allowedStatuses = {
+    under_review: true,
+    accepted: true,
+    rejected: true
+  };
+
+  function hasAccess() {
+    return gs.isLoggedIn() && (gs.hasRole(adminRole) || gs.hasRole(recruiterRole));
+  }
+
+  function join(value) {
+    if (value == null)
+      return '';
+    if (Object.prototype.toString.call(value) === '[object Array]')
+      return value.join(', ');
+    if (typeof value === 'string') {
+      try {
+        var parsed = JSON.parse(value);
+        if (Object.prototype.toString.call(parsed) === '[object Array]')
+          return parsed.join(', ');
+      } catch (e) {}
+      return value;
+    }
+    return String(value);
+  }
+
+  function loadInternships() {
+    var internship = new GlideRecord('x_2311790_skills_0_internship');
+    internship.orderBy('short_description');
+    internship.query();
+
+    while (internship.next()) {
+      var title = internship.getDisplayValue('') ||
+        internship.getValue('short_description') ||
+        internship.getUniqueValue();
+      data.internships.push({
+        sys_id: internship.getUniqueValue(),
+        title: title
+      });
+    }
+  }
+
+  function loadApplicants(internshipSysId) {
+    if (!internshipSysId)
+      return;
+
+    var engine = new x_2311790_skills_0.MatchingEngine();
+    var ranked = engine.rankApplicants(internshipSysId);
+    if (!ranked.ok) {
+      data.error = 'Could not rank applicants: ' + ranked.errorCode + ': ' + ranked.errorMessage;
+      return;
+    }
+
+    for (var i = 0; i < ranked.results.length; i++) {
+      var item = ranked.results[i];
+      var application = new GlideRecord('x_2311790_skills_0_internship_application');
+      var status = '';
+      var note = '';
+
+      if (application.get(item.applicationSysId)) {
+        status = application.getValue('u_application_status') || '';
+        note = application.getValue('u_review_note') || '';
+      }
+
+      var applicantName = item.studentSysId || '';
+      var user = new GlideRecord('sys_user');
+      if (user.get(item.studentSysId))
+        applicantName = user.getValue('name') || applicantName;
+
+      data.applicants.push({
+        sys_id: item.applicationSysId,
+        rank: item.rank || '',
+        applicant: applicantName,
+        score: item.score || 0,
+        status: status,
+        statusLabel: application.getDisplayValue('u_application_status') || status,
+        matchedSkills: join(item.matchedSkills),
+        missingRequirements: join(item.missingRequirements),
+        rationale: item.rationale || '',
+        note: note
+      });
+    }
+
+    if (!data.applicants.length)
+      data.message = 'No ranked applicants were found for this internship.';
+  }
+
+  function setStatus() {
+    var applicationSysId = input && input.application ? input.application : '';
+    var status = input && input.status ? input.status : '';
+    var note = input && input.note ? input.note : '';
+
+    if (!allowedStatuses[status]) {
+      data.error = 'Invalid application status.';
+      return;
+    }
+
+    var application = new GlideRecord('x_2311790_skills_0_internship_application');
+    if (!application.get(applicationSysId)) {
+      data.error = 'Application was not found.';
+      return;
+    }
+
+    var currentStatus = application.getValue('u_application_status') || '';
+    if (currentStatus == 'accepted' || currentStatus == 'rejected') {
+      data.error = 'Application is already in a terminal status.';
+      return;
+    }
+
+    application.setValue('u_application_status', status);
+    application.setValue('u_review_note', note);
+    application.update();
+
+    data.selected_internship = application.getValue('internship');
+    data.message = 'Application status set to ' + status.replace('_', ' ') + '.';
+  }
+
+  if (!hasAccess()) {
+    data.error = 'Your account is not allowed to review applicants.';
+    return;
+  }
+
+  var action = input && input.action ? input.action : 'load';
+  if (action == 'set_status')
+    setStatus();
+  else
+    data.message = '';
+
+  loadInternships();
+
+  if (!data.selected_internship && data.internships.length)
+    data.selected_internship = data.internships[0].sys_id;
+
+  loadApplicants(data.selected_internship);
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_id>e100000887b0db103d6bcbf5cebb3508</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Recruiter Review</sys_name>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sp_widget_e100000887b0db103d6bcbf5cebb3508</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+        <template><![CDATA[<div class="skillsync-review">
+  <h3>Recruiter review</h3>
+
+  <p class="skillsync-error" ng-if="c.error">{{ c.error }}</p>
+  <p class="skillsync-message" ng-if="c.message">{{ c.message }}</p>
+
+  <div class="skillsync-filters">
+    <label for="recruiterInternship">Internship</label>
+    <select id="recruiterInternship"
+            ng-model="c.selectedInternship"
+            ng-change="c.selectInternship(c.selectedInternship)"
+            ng-options="item.sys_id as item.title for item in c.internships">
+      <option value="">Select an internship</option>
+    </select>
+    <button type="button" class="btn btn-default" ng-click="c.refresh()" ng-disabled="c.loading">
+      {{ c.loading ? 'Loading...' : 'Refresh' }}
+    </button>
+  </div>
+
+  <table ng-if="c.applicants.length">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Applicant</th>
+        <th>Score</th>
+        <th>Status</th>
+        <th>Matched skills</th>
+        <th>Missing requirements</th>
+        <th>Rationale</th>
+        <th>Review note</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="a in c.applicants">
+        <td class="skillsync-rank">#{{ a.rank }}</td>
+        <td>{{ a.applicant }}</td>
+        <td class="skillsync-score">{{ a.score }}</td>
+        <td>{{ a.statusLabel || a.status || 'submitted' }}</td>
+        <td>{{ a.matchedSkills || 'None' }}</td>
+        <td>{{ a.missingRequirements || 'None' }}</td>
+        <td>{{ a.rationale }}</td>
+        <td>
+          <input class="skillsync-note"
+                 type="text"
+                 ng-model="c.notes[a.sys_id]"
+                 placeholder="Optional note" />
+        </td>
+        <td class="skillsync-actions">
+          <button type="button" class="btn btn-default btn-xs"
+                  ng-disabled="c.actionBusy || a.status == 'accepted' || a.status == 'rejected'"
+                  ng-click="c.setStatus(a.sys_id, 'under_review')">Review</button>
+          <button type="button" class="btn btn-success btn-xs"
+                  ng-disabled="c.actionBusy || a.status == 'accepted' || a.status == 'rejected'"
+                  ng-click="c.setStatus(a.sys_id, 'accepted')">Accept</button>
+          <button type="button" class="btn btn-danger btn-xs"
+                  ng-disabled="c.actionBusy || a.status == 'accepted' || a.status == 'rejected'"
+                  ng-click="c.setStatus(a.sys_id, 'rejected')">Reject</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>]]></template>
+    </sp_widget>
+</record_update>

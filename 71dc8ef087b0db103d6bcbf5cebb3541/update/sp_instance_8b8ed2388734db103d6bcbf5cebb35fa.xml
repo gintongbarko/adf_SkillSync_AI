@@ -29,7 +29,7 @@
 	&lt;div class="skeleton-box skeleton-line medium"&gt;&lt;/div&gt;
 &lt;/div&gt;</placeholder_template>
         <preserve_placeholder_size>false</preserve_placeholder_size>
-        <roles/>
+        <roles>admin,x_2311790_skills_0.admin,x_2311790_skills_0.student,x_2311790_skills_0.student_profile_user</roles>
         <short_description/>
         <size>md</size>
         <sp_column display_value="1">3e8ed2388734db103d6bcbf5cebb35ce</sp_column>

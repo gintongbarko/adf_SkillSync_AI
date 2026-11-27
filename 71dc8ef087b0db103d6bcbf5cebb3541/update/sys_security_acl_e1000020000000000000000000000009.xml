@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl">
+    <sys_security_acl action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <admin_overrides>true</admin_overrides>
+        <advanced>true</advanced>
+        <applies_to/>
+        <condition/>
+        <controlled_by_refs/>
+        <decision_type>allow</decision_type>
+        <description>Step 5 field ACL: owner, recruiter, or admin may read u_parsed_attachment_sys_id.</description>
+        <element>u_parsed_attachment_sys_id</element>
+        <local_or_existing>Existing</local_or_existing>
+        <name>x_2311790_skills_0_student_profile</name>
+        <operation display_value="read">read</operation>
+        <script><![CDATA[var isAdmin = gs.hasRole('x_2311790_skills_0.admin') || gs.hasRole('admin');
+var isRecruiter = gs.hasRole('x_2311790_skills_0.recruiter');
+var ownerId = current.getValue('u_user') || '';
+answer = isAdmin || isRecruiter || (ownerId != '' && ownerId == gs.getUserID());]]></script>
+        <security_attribute/>
+        <sys_class_name>sys_security_acl</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_id>e1000020000000000000000000000009</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_2311790_skills_0_student_profile.u_parsed_attachment_sys_id.x_2311790_skills_0.admin</sys_name>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sys_security_acl_e1000020000000000000000000000009</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+        <type display_value="record">record</type>
+    </sys_security_acl>
+        <sys_security_acl_role action="INSERT_OR_UPDATE">
+            <sys_class_name>sys_security_acl_role</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+            <sys_id>e100001000000000000000000000004b</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_2311790_skills_0_student_profile.x_2311790_skills_0.admin</sys_name>
+            <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+            <sys_security_acl display_value="x_2311790_skills_0_student_profile">e1000020000000000000000000000009</sys_security_acl>
+            <sys_update_name>sys_security_acl_role_e100001000000000000000000000004b</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+            <sys_user_role display_value="x_2311790_skills_0.admin" name="x_2311790_skills_0.admin">35dc8ef087b0db103d6bcbf5cebb3573</sys_user_role>
+        </sys_security_acl_role>
+        <sys_security_acl_role action="INSERT_OR_UPDATE">
+            <sys_class_name>sys_security_acl_role</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+            <sys_id>e100001000000000000000000000004c</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_2311790_skills_0_student_profile.x_2311790_skills_0.recruiter</sys_name>
+            <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+            <sys_security_acl display_value="x_2311790_skills_0_student_profile">e1000020000000000000000000000009</sys_security_acl>
+            <sys_update_name>sys_security_acl_role_e100001000000000000000000000004c</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+            <sys_user_role display_value="x_2311790_skills_0.recruiter" name="x_2311790_skills_0.recruiter">e100000787b0db103d6bcbf5cebb3507</sys_user_role>
+        </sys_security_acl_role>
+        <sys_security_acl_role action="INSERT_OR_UPDATE">
+            <sys_class_name>sys_security_acl_role</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+            <sys_id>e100001000000000000000000000004d</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_2311790_skills_0_student_profile.x_2311790_skills_0.student</sys_name>
+            <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+            <sys_security_acl display_value="x_2311790_skills_0_student_profile">e1000020000000000000000000000009</sys_security_acl>
+            <sys_update_name>sys_security_acl_role_e100001000000000000000000000004d</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+            <sys_user_role display_value="x_2311790_skills_0.student" name="x_2311790_skills_0.student">f5dc8ef087b0db103d6bcbf5cebb356a</sys_user_role>
+        </sys_security_acl_role>
+        <sys_security_acl_role action="INSERT_OR_UPDATE">
+            <sys_class_name>sys_security_acl_role</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+            <sys_id>e100001000000000000000000000004e</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_2311790_skills_0_student_profile.x_2311790_skills_0.student_profile_user</sys_name>
+            <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+            <sys_security_acl display_value="x_2311790_skills_0_student_profile">e1000020000000000000000000000009</sys_security_acl>
+            <sys_update_name>sys_security_acl_role_e100001000000000000000000000004e</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+            <sys_user_role display_value="x_2311790_skills_0.student_profile_user" name="x_2311790_skills_0.student_profile_user">34af067887b0db103d6bcbf5cebb3593</sys_user_role>
+        </sys_security_acl_role>
+</record_update>

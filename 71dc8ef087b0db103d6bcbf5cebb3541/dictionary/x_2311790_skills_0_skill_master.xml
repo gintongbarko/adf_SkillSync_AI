@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?><database>
     <element attributes="enforce_dot_walk_cross_scope_access=true" db_object_id="c5fe8ef487b0db103d6bcbf5cebb35bf" label="Skill Master" max_length="40" name="x_2311790_skills_0_skill_master" type="collection">
         <element label="Name" mandatory="true" max_length="100" name="name" type="string"/>
+        <element label="Normalized Name" mandatory="true" max_length="100" name="u_normalized_name" type="string" unique="true"/>
+        <element choice="1" label="Category" max_length="40" name="u_category" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Skill" sequence="100" value="skill"/>
+                <element inactive_on_update="false" label="Tool" sequence="200" value="tool"/>
+            </choice>
+        </element>
+        <index name="index" unique="true">
+            <element name="u_normalized_name"/>
+        </index>
     </element>
 </database>

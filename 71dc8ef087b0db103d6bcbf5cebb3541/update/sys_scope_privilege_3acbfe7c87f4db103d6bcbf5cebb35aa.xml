@@ -2,7 +2,7 @@
     <sys_scope_privilege action="INSERT_OR_UPDATE">
         <operation>read</operation>
         <source_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</source_scope>
-        <status>allowed</status>
+        <status>denied</status>
         <sys_class_name>sys_scope_privilege</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2026-11-24 13:46:28</sys_created_on>

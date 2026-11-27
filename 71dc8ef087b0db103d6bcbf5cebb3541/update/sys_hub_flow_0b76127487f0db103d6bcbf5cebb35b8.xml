@@ -11,7 +11,7 @@
         <category/>
         <copied_from/>
         <copied_from_name/>
-        <description/>
+        <description>Sends the acceptance email when an application status becomes accepted.</description>
         <display_name_after_preview/>
         <flow_priority>MEDIUM</flow_priority>
         <generation_source/>
@@ -24,7 +24,7 @@
         <outputs/>
         <pre_compiled>false</pre_compiled>
         <remote_trigger_id>fe97da7887f0db103d6bcbf5cebb3524</remote_trigger_id>
-        <run_as>user</run_as>
+        <run_as>system</run_as>
         <run_with_roles/>
         <sc_callable>false</sc_callable>
         <show_draft_actions>false</show_draft_actions>
@@ -55,7 +55,7 @@
     <sys_variable_value action="delete_multiple" query="document_key=0b76127487f0db103d6bcbf5cebb35b8"/>
     <sys_flow_record_trigger action="INSERT_OR_UPDATE">
         <active>true</active>
-        <condition table="x_2311790_skills_0_internship_application">stateCHANGESTO3<item display_value="Closed Complete" endquery="false" field="state" goto="false" newquery="false" operator="CHANGESTO" or="false" value="3"/>
+        <condition table="x_2311790_skills_0_internship_application">u_application_statusCHANGESTOaccepted<item display_value="Accepted" endquery="false" field="u_application_status" goto="false" newquery="false" operator="CHANGESTO" or="false" value="accepted"/>
         </condition>
         <name/>
         <on_delete>false</on_delete>
@@ -530,7 +530,7 @@
         <outputs/>
         <parent_flow display_value="Accept Applicant">0b76127487f0db103d6bcbf5cebb35b8</parent_flow>
         <remote_trigger_id/>
-        <run_as>user</run_as>
+        <run_as>system</run_as>
         <run_with_roles/>
         <sc_callable>false</sc_callable>
         <status>published</status>

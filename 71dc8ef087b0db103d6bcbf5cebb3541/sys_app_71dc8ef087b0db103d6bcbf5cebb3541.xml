@@ -19,9 +19,9 @@
         <name>SkillSync</name>
         <package_json/>
         <package_resolver_version>1.0.0</package_resolver_version>
-        <private>false</private>
-        <restrict_table_access>false</restrict_table_access>
-        <runtime_access_tracking>permissive</runtime_access_tracking>
+        <private>true</private>
+        <restrict_table_access>true</restrict_table_access>
+        <runtime_access_tracking>enforcing</runtime_access_tracking>
         <scope>x_2311790_skills_0</scope>
         <scoped_administration>false</scoped_administration>
         <short_description/>

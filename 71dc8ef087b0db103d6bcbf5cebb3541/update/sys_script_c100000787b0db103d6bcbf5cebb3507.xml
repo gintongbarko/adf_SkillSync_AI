@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>false</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_2311790_skills_0_student_profile</collection>
+        <condition/>
+        <description>Generates a profile embedding when a newly parsed attachment is stored.</description>
+        <execute_function>false</execute_function>
+        <filter_condition table="x_2311790_skills_0_student_profile">u_parse_status=parsed^EQ<item display_value="Parsed" endquery="false" field="u_parse_status" goto="false" newquery="false" operator="=" or="false" value="parsed"/>
+            <item endquery="true" field="" goto="false" newquery="false" operator="=" or="false" value=""/>
+        </filter_condition>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Generate Profile Embedding After Parse</name>
+        <order>100</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    var parsedAttachment = current.getValue('u_parsed_attachment_sys_id') || '';
+    var embeddedAttachment = current.getValue('u_embedded_attachment_sys_id') || '';
+
+    if (!parsedAttachment || parsedAttachment == embeddedAttachment)
+        return;
+
+    var service = new x_2311790_skills_0.EmbeddingService();
+    var result = service.prepareProfile(current);
+
+    if (!result.ok) {
+        var error = (result.errorCode || 'UNKNOWN_EMBEDDING_FAILURE') + ': ' + (result.errorMessage || 'Embedding failed.');
+        if (error.length > 997)
+            error = error.substring(0, 997) + '...';
+        current.setValue('u_embedding_error', error);
+        return;
+    }
+
+    current.setValue('embedding', result.vector);
+    current.setValue('u_embedding_model', result.model || '');
+    current.setValue('u_embedding_version', result.version || '');
+    current.setValue('u_embedding_dim', result.dim || 0);
+    current.setValue('u_embedded_at', gs.nowDateTime());
+    current.setValue('u_embedded_attachment_sys_id', parsedAttachment);
+    current.setValue('u_embedding_error', '');
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>c100000787b0db103d6bcbf5cebb3507</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Generate Profile Embedding After Parse</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sys_script_c100000787b0db103d6bcbf5cebb3507</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=c100000787b0db103d6bcbf5cebb3507"/>
+</record_update>

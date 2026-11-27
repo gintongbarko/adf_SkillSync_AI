@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_2311790_skills_0_internship_application</collection>
+        <condition/>
+        <description>Assigns top-5 ranks after application scoring changes.</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Rank Internship Applications</name>
+        <order>200</order>
+        <priority>200</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null on insert*/) {
+    if (previous &&
+        !current.changes('internship') &&
+        !current.changes('u_student') &&
+        !current.changes('u_matched_at'))
+        return;
+
+    var internshipSysId = current.getValue('internship');
+    if (!internshipSysId)
+        return;
+
+    var engine = new x_2311790_skills_0.MatchingEngine();
+    var ranked = engine.rankApplicants(internshipSysId);
+    if (!ranked.ok) {
+        gs.warn('Rank Internship Applications: ' + ranked.errorCode + ': ' + ranked.errorMessage);
+        return;
+    }
+
+    var ranks = {};
+    for (var i = 0; i < ranked.results.length; i++)
+        ranks[ranked.results[i].applicationSysId] = ranked.results[i].rank;
+
+    var app = new GlideRecord('x_2311790_skills_0_internship_application');
+    app.addQuery('internship', internshipSysId);
+    app.query();
+
+    while (app.next()) {
+        var sysId = app.getUniqueValue();
+        var rank = ranks[sysId] || '';
+        if (String(app.getValue('u_match_rank')) != String(rank)) {
+            app.setValue('u_match_rank', rank);
+            app.update();
+        }
+    }
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>c100002087b0db103d6bcbf5cebb3520</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Rank Internship Applications</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sys_script_c100002087b0db103d6bcbf5cebb3520</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+        <template/>
+        <when>after</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=c100002087b0db103d6bcbf5cebb3520"/>
+</record_update>

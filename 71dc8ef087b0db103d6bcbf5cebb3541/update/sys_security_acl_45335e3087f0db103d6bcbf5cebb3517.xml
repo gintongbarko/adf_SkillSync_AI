@@ -2,16 +2,30 @@
     <sys_security_acl action="INSERT_OR_UPDATE">
         <active>true</active>
         <admin_overrides>true</admin_overrides>
-        <advanced>false</advanced>
+        <advanced>true</advanced>
         <applies_to/>
         <condition/>
         <controlled_by_refs/>
         <decision_type>allow</decision_type>
-        <description>Allow delete for records in x_2311790_skills_0_internship_application, for users with role x_2311790_skills_0.internship_application_user.</description>
+        <description>Step 5 row-scoped delete for x_2311790_skills_0_internship_application; role membership is still required x_2311790_skills_0.internship_application_user.</description>
         <local_or_existing>Existing</local_or_existing>
         <name>x_2311790_skills_0_internship_application</name>
         <operation display_value="delete">delete</operation>
-        <script/>
+        <script><![CDATA[var isAdmin = gs.hasRole('x_2311790_skills_0.admin') || gs.hasRole('admin');
+var isRecruiter = gs.hasRole('x_2311790_skills_0.recruiter');
+var isOrgHead = gs.hasRole('x_2311790_skills_0.org_head');
+var studentId = current.getValue('u_student') || '';
+var isStudentOwner = studentId != '' && studentId == gs.getUserID();
+var internshipId = current.getValue('internship') || '';
+var groupName = '';
+if (internshipId) {
+    var internship = new GlideRecord('x_2311790_skills_0_internship');
+    if (internship.get(internshipId)) {
+        groupName = internship.getDisplayValue('u_org') || '';
+    }
+}
+var isOrgOwner = isOrgHead && groupName != '' && gs.getUser().isMemberOf(groupName);
+answer = isAdmin;]]></script>
         <security_attribute/>
         <sys_class_name>sys_security_acl</sys_class_name>
         <sys_created_by>admin</sys_created_by>
@@ -27,4 +41,21 @@
         <sys_updated_on>2026-11-24 10:49:07</sys_updated_on>
         <type display_value="record">record</type>
     </sys_security_acl>
+
+        <sys_security_acl_role action="INSERT_OR_UPDATE">
+            <sys_class_name>sys_security_acl_role</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+            <sys_id>e100001000000000000000000000002e</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_2311790_skills_0_internship_application.x_2311790_skills_0.admin</sys_name>
+            <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+            <sys_security_acl display_value="x_2311790_skills_0_internship_application">45335e3087f0db103d6bcbf5cebb3517</sys_security_acl>
+            <sys_update_name>sys_security_acl_role_e100001000000000000000000000002e</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+            <sys_user_role display_value="x_2311790_skills_0.admin" name="x_2311790_skills_0.admin">35dc8ef087b0db103d6bcbf5cebb3573</sys_user_role>
+        </sys_security_acl_role>
 </record_update>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sys_properties">
     <sys_properties action="INSERT_OR_UPDATE">
         <choices/>
-        <description>API key for Google Gemini integration</description>
+        <description>Gemini API key. Set this value in each environment; do not store it in source control.</description>
         <ignore_cache>false</ignore_cache>
         <is_private>true</is_private>
         <name>x_2311790_skills_0.gemini_api_key</name>
@@ -20,7 +20,6 @@
         <sys_updated_by>admin</sys_updated_by>
         <sys_updated_on>2026-11-24 13:51:12</sys_updated_on>
         <type>password2</type>
-        <value>{{gpaes}}l+sD2BfH5P4BXQJp5rzqZP69GzyMPkjX1+RF6atWow1YzWTalcz59eZmf7J5YMgE</value>
         <write_roles/>
     </sys_properties>
     <sys_translated_text action="delete_multiple" query="documentkey=5e9cfabc87f4db103d6bcbf5cebb3536"/>

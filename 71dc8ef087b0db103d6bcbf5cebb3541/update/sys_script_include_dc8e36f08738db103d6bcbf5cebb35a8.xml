@@ -2,124 +2,404 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>package_private</access>
         <active>true</active>
-        <api_name>x_2311790_skills_0.GeminiUtils </api_name>
+        <api_name>x_2311790_skills_0.GeminiUtils</api_name>
         <caller_access/>
         <client_callable>false</client_callable>
         <description/>
         <mobile_callable>false</mobile_callable>
-        <name>GeminiUtils </name>
+        <name>GeminiUtils</name>
         <sandbox_callable>false</sandbox_callable>
         <script><![CDATA[var GeminiUtils = Class.create();
 GeminiUtils.prototype = {
     initialize: function() {
         var protocol = 'https://';
-        var domain = 'generativelanguage.' + 'googleapis.com';
+        var domain = 'generativelanguage.googleapis.com';
         var version = '/v1beta/models/';
-        var model = 'gemini-3.5-flash:generateContent';
 
-        this.endpoint = protocol + domain + version + model;
+        this.model = gs.getProperty('x_2311790_skills_0.gemini_model') || 'gemini-3.5-flash';
+        this.endpoint = gs.getProperty('x_2311790_skills_0.gemini_endpoint') ||
+            (protocol + domain + version + this.model + ':generateContent');
         this.apiKey = gs.getProperty('x_2311790_skills_0.gemini_api_key');
+        this.maxAttempts = 3;
     },
 
     parseResumeAttachment: function(tableName, recordSysId) {
         try {
-            if (!this.apiKey) {
-                gs.error('GeminiUtils: Missing x_2311790_skills_0.gemini_api_key property.');
-                return null;
-            }
+            if (!this.apiKey)
+                return this._fail('MISSING_API_KEY', false, 'Gemini API key is not configured.', 0);
 
-            // 1. Find the most recent PDF attachment on this record
-            var attGr = new GlideRecord('sys_attachment');
-            attGr.addQuery('table_name', tableName);
-            attGr.addQuery('table_sys_id', recordSysId);
-            attGr.addQuery('content_type', 'application/pdf');
-            attGr.orderByDesc('sys_created_on');
-            attGr.setLimit(1);
-            attGr.query();
+            if (!tableName || !recordSysId)
+                return this._fail('INVALID_INPUT', false, 'Missing table name or record sys_id.', 0);
 
-            if (!attGr.next()) {
-                gs.warn('GeminiUtils: No PDF attachment found for ' + tableName + ' (' + recordSysId + ')');
-                return null;
-            }
+            var attachment = this._getLatestPdf(tableName, recordSysId);
+            if (!attachment.found)
+                return this._fail('NO_PDF', false, 'No PDF attachment found.', 0);
 
-            // 2. Read the PDF attachment as Base64
             var gsa = new GlideSysAttachment();
-            var pdfBase64 = gsa.getContentBase64(attGr);
+            var pdfBase64 = gsa.getContentBase64(attachment.record);
+            if (!pdfBase64)
+                return this._fail('ATTACHMENT_READ', false, 'Could not read the PDF attachment as Base64.', 0);
 
-            if (!pdfBase64) {
-                gs.error('GeminiUtils: Failed to encode PDF attachment to Base64.');
-                return null;
-            }
+            var payload = this._buildPayload(pdfBase64);
+            var response = this._callWithRetry(payload);
+            if (!response.ok)
+                return response;
 
-            // 3. Build your structured JSON payload
-            var payload = {
-                "systemInstruction": {
-                    "parts": [{
-                        "text": "You are an accurate resume parser. Extract only facts explicitly present in the attached PDF resume. Do not invent skills, roles, or experience."
-                    }]
-                },
-                "contents": [{
-                    "role": "user",
-                    "parts": [
-                        {
-                            "inlineData": {
-                                "mimeType": "application/pdf",
-                                "data": pdfBase64
-                            }
-                        },
-                        {
-                            "text": "Extract a short professional headline and a factual parsed_resume summary (including key skills and experience) from this PDF."
-                        }
-                    ]
-                }],
-                "generationConfig": {
-                    "temperature": 0.1,
-                    "responseMimeType": "application/json",
-                    "responseSchema": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "headline": {
-                                "type": "STRING",
-                                "description": "Short professional headline, e.g. '3rd Year CS Student | Backend Developer'"
-                            },
-                            "parsed_resume": {
-                                "type": "STRING",
-                                "description": "Concise, factual summary of the candidate's background, experience, and technical skills."
-                            }
-                        },
-                        "required": ["headline", "parsed_resume"],
-                        "propertyOrdering": ["headline", "parsed_resume"]
-                    }
-                }
+            var extracted = this._extractJson(response.body);
+            if (!extracted.ok)
+                return extracted;
+
+            var normalized = this._normalize(extracted.data);
+            if (!normalized.ok)
+                return normalized;
+
+            return {
+                ok: true,
+                data: normalized.data,
+                status: response.status,
+                attempts: response.attempts,
+                attachmentSysId: attachment.sysId
             };
-
-            // 4. Execute the HTTP POST directly without a REST Message record
-            var r = new sn_ws.RESTMessageV2();
-            r.setEndpoint(this.endpoint);
-            r.setHttpMethod('POST');
-            r.setRequestHeader('Content-Type', 'application/json');
-            r.setRequestHeader('x-goog-api-key', this.apiKey);
-            r.setRequestBody(JSON.stringify(payload));
-
-            var response = r.execute();
-            var status = response.getStatusCode();
-            var body = response.getBody();
-
-            if (status == 200) {
-                var parsedResponse = JSON.parse(body);
-                var firstCandidate = parsedResponse.candidates.shift();
-                var firstPart = firstCandidate.content.parts.shift();
-
-                // Returns a JS object: { headline: "...", parsed_resume: "..." }
-                return JSON.parse(firstPart.text);
-            } else {
-                gs.error('GeminiUtils API Error (' + status + '): ' + body);
-                return null;
-            }
         } catch (ex) {
-            gs.error('GeminiUtils Exception: ' + ex.message);
-            return null;
+            return this._fail('EXCEPTION', false, 'GeminiUtils exception: ' + (ex.message || ex), 0);
         }
+    },
+
+    _getLatestPdf: function(tableName, recordSysId) {
+        var attGr = new GlideRecord('sys_attachment');
+        attGr.addQuery('table_name', tableName);
+        attGr.addQuery('table_sys_id', recordSysId);
+        attGr.addQuery('content_type', 'application/pdf');
+        attGr.orderByDesc('sys_created_on');
+        attGr.setLimit(1);
+        attGr.query();
+
+        if (attGr.next())
+            return { found: true, record: attGr, sysId: attGr.getUniqueValue() };
+
+        return { found: false, record: null, sysId: '' };
+    },
+
+    _buildPayload: function(pdfBase64) {
+        return {
+            systemInstruction: {
+                parts: [{
+                    text: 'You are an accurate resume parser. Extract only facts explicitly present in the attached PDF resume. Do not invent skills, roles, or experience. Return JSON only and match the provided response schema.'
+                }]
+            },
+            contents: [{
+                role: 'user',
+                parts: [
+                    {
+                        inlineData: {
+                            mimeType: 'application/pdf',
+                            data: pdfBase64
+                        }
+                    },
+                    {
+                        text: 'Extract a short headline, a factual parsed_resume summary, up to 10 skills, up to 10 tools, education, experience_years, and projects. Use confidence between 0 and 1. Use evidence only when the resume explicitly supports it.'
+                    }
+                ]
+            }],
+            generationConfig: {
+                temperature: 0.1,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: 'OBJECT',
+                    properties: {
+                        headline: {
+                            type: 'STRING',
+                            description: 'Short professional headline, e.g. 3rd Year CS Student | Backend Developer'
+                        },
+                        parsed_resume: {
+                            type: 'STRING',
+                            description: 'Concise, factual summary of the candidate background, experience, and technical skills.'
+                        },
+                        skills: {
+                            type: 'ARRAY',
+                            description: 'Technical skills explicitly present in the resume.',
+                            items: {
+                                type: 'OBJECT',
+                                properties: {
+                                    name: { type: 'STRING' },
+                                    proficiency: { type: 'STRING', description: 'beginner, intermediate, or advanced' },
+                                    confidence: { type: 'NUMBER', description: 'Extraction confidence from 0 to 1.' },
+                                    evidence: { type: 'STRING' },
+                                    rank: { type: 'NUMBER', description: 'Importance order, 1 is highest.' }
+                                },
+                                required: ['name'],
+                                propertyOrdering: ['name', 'proficiency', 'confidence', 'evidence', 'rank']
+                            }
+                        },
+                        tools: {
+                            type: 'ARRAY',
+                            description: 'Tools, platforms, and technologies explicitly present in the resume.',
+                            items: {
+                                type: 'OBJECT',
+                                properties: {
+                                    name: { type: 'STRING' },
+                                    proficiency: { type: 'STRING' },
+                                    confidence: { type: 'NUMBER' },
+                                    evidence: { type: 'STRING' },
+                                    rank: { type: 'NUMBER' }
+                                },
+                                required: ['name'],
+                                propertyOrdering: ['name', 'proficiency', 'confidence', 'evidence', 'rank']
+                            }
+                        },
+                        education: {
+                            type: 'STRING',
+                            description: 'Education summary.'
+                        },
+                        experience_years: {
+                            type: 'NUMBER',
+                            description: 'Years of experience explicitly stated or clearly inferable from dates.'
+                        },
+                        projects: {
+                            type: 'STRING',
+                            description: 'Project summary.'
+                        }
+                    },
+                    required: ['headline', 'parsed_resume', 'skills', 'tools', 'education', 'experience_years', 'projects'],
+                    propertyOrdering: ['headline', 'parsed_resume', 'skills', 'tools', 'education', 'experience_years', 'projects']
+                }
+            }
+        };
+    },
+
+    _callWithRetry: function(payload) {
+        var bodyText = JSON.stringify(payload);
+        var lastStatus = 0;
+        var lastBody = '';
+
+        for (var attempt = 1; attempt <= this.maxAttempts; attempt++) {
+            try {
+                var r = new sn_ws.RESTMessageV2();
+                r.setEndpoint(this.endpoint);
+                r.setHttpMethod('POST');
+                r.setRequestHeader('Content-Type', 'application/json');
+                r.setRequestHeader('x-goog-api-key', this.apiKey);
+                r.setRequestBody(bodyText);
+
+                var response = r.execute();
+                lastStatus = response.getStatusCode();
+                lastBody = response.getBody() || '';
+
+                if (lastStatus == 200)
+                    return { ok: true, status: lastStatus, body: lastBody, attempts: attempt };
+
+                var retryable = this._isRetryable(lastStatus);
+                if (!retryable || attempt === this.maxAttempts)
+                    return this._fail('HTTP_' + lastStatus, retryable, 'Gemini HTTP ' + lastStatus + ': ' + this._truncate(lastBody, 500), attempt);
+
+                this._sleep(this._backoffMs(attempt));
+            } catch (ex) {
+                if (attempt === this.maxAttempts)
+                    return this._fail('HTTP_EXCEPTION', true, 'Gemini request exception: ' + (ex.message || ex), attempt);
+
+                this._sleep(this._backoffMs(attempt));
+            }
+        }
+
+        return this._fail('RETRY_EXHAUSTED', true, 'Gemini retries exhausted. Last status: ' + lastStatus, this.maxAttempts);
+    },
+
+    _extractJson: function(body) {
+        try {
+            var outer = JSON.parse(body);
+            if (!outer.candidates || outer.candidates.length === 0)
+                return this._fail('EMPTY_CANDIDATES', false, 'Gemini response contained no candidates.', 0);
+
+            var first = outer.candidates[0];
+            if (!first.content || !first.content.parts || first.content.parts.length === 0)
+                return this._fail('EMPTY_PARTS', false, 'Gemini response contained no content parts.', 0);
+
+            var text = first.content.parts[0].text;
+            if (!text)
+                return this._fail('EMPTY_TEXT', false, 'Gemini response contained no generated text.', 0);
+
+            var data = JSON.parse(text);
+            return { ok: true, data: data };
+        } catch (ex) {
+            return this._fail('INVALID_RESPONSE', false, 'Could not parse Gemini response: ' + (ex.message || ex), 0);
+        }
+    },
+
+    _normalize: function(data) {
+        if (!data || typeof data.headline !== 'string' || typeof data.parsed_resume !== 'string')
+            return this._fail('INVALID_FIELDS', false, 'Gemini did not return headline and parsed_resume as strings.', 0);
+
+        var headlineResult = this._trimTruncate(data.headline, 100);
+        var parsedResumeResult = this._trimTruncate(data.parsed_resume, 4000);
+
+        if (!headlineResult.value || !parsedResumeResult.value)
+            return this._fail('EMPTY_FIELDS', false, 'Gemini returned empty headline or parsed_resume.', 0);
+
+        if (!this._isArray(data.skills))
+            return this._fail('INVALID_SKILL_ARRAY', false, 'Gemini did not return skills as an array.', 0);
+
+        if (!this._isArray(data.tools))
+            return this._fail('INVALID_TOOL_ARRAY', false, 'Gemini did not return tools as an array.', 0);
+
+        if (typeof data.education !== 'string' || typeof data.projects !== 'string')
+            return this._fail('INVALID_STRUCTURED_RESPONSE', false, 'Gemini did not return education and projects as strings.', 0);
+
+        var skills = this._normalizeItemArray(data.skills, 'skill');
+        if (!skills.ok)
+            return skills;
+
+        var tools = this._normalizeItemArray(data.tools, 'tool');
+        if (!tools.ok)
+            return tools;
+
+        var educationResult = this._trimTruncate(data.education, 2000);
+        var projectsResult = this._trimTruncate(data.projects, 4000);
+        var combined = skills.data.concat(tools.data);
+        var truncated = headlineResult.truncated || parsedResumeResult.truncated ||
+            educationResult.truncated || projectsResult.truncated;
+
+        if (combined.length > 10) {
+            combined = combined.slice(0, 10);
+            truncated = true;
+        }
+
+        combined.sort(function(a, b) {
+            return a.rank - b.rank;
+        });
+
+        var finalSkills = [];
+        var finalTools = [];
+        for (var i = 0; i < combined.length; i++) {
+            combined[i].rank = i + 1;
+            if (combined[i].skillType === 'tool')
+                finalTools.push(combined[i]);
+            else
+                finalSkills.push(combined[i]);
+        }
+
+        return {
+            ok: true,
+            data: {
+                headline: headlineResult.value,
+                parsed_resume: parsedResumeResult.value,
+                education: educationResult.value,
+                experience_years: this._toNumber(data.experience_years, 0, 0, 60),
+                projects: projectsResult.value,
+                skills: finalSkills,
+                tools: finalTools,
+                truncated: truncated
+            }
+        };
+    },
+
+    _normalizeItemArray: function(items, skillType) {
+        var normalized = [];
+        var code = skillType === 'tool' ? 'INVALID_TOOL_ARRAY' : 'INVALID_SKILL_ARRAY';
+
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (!item || typeof item !== 'object' || typeof item.name !== 'string')
+                return this._fail(code, false, 'Gemini returned an invalid ' + skillType + ' entry.', 0);
+
+            var nameResult = this._trimTruncate(item.name, 100);
+            if (!nameResult.value)
+                return this._fail(code, false, 'Gemini returned an empty ' + skillType + ' name.', 0);
+
+            var rank = i + 1;
+            var parsedRank = parseInt(item.rank, 10);
+            if (!isNaN(parsedRank) && parsedRank > 0)
+                rank = parsedRank;
+
+            normalized.push({
+                name: nameResult.value,
+                normalizedName: this._normalizeName(nameResult.value),
+                skillType: skillType,
+                proficiency: this._normalizeProficiency(item.proficiency),
+                confidence: this._toNumber(item.confidence, 0.7, 0, 1),
+                evidence: typeof item.evidence === 'string' ? this._trimTruncate(item.evidence, 500).value : '',
+                rank: rank
+            });
+        }
+
+        return { ok: true, data: normalized };
+    },
+
+    _normalizeProficiency: function(value) {
+        var text = String(value || '').replace(/^\s+|\s+$/g, '').toLowerCase();
+        if (text === 'beginner' || text === 'basic' || text === 'novice')
+            return 'beginner';
+        if (text === 'intermediate' || text === 'proficient')
+            return 'intermediate';
+        if (text === 'advanced' || text === 'expert' || text === 'senior')
+            return 'advanced';
+        return '';
+    },
+
+    _normalizeName: function(value) {
+        return String(value || '')
+            .replace(/^\s+|\s+$/g, '')
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+    },
+
+    _toNumber: function(value, fallback, min, max) {
+        var number = parseFloat(value);
+        if (isNaN(number))
+            return fallback;
+        if (number < min)
+            number = min;
+        if (number > max)
+            number = max;
+        return Math.round(number * 100) / 100;
+    },
+
+    _trimTruncate: function(value, maxLength) {
+        var text = String(value || '').replace(/^\s+|\s+$/g, '');
+        if (text.length > maxLength)
+            return { value: text.substring(0, maxLength - 3) + '...', truncated: true };
+        return { value: text, truncated: false };
+    },
+
+    _isArray: function(value) {
+        return Object.prototype.toString.call(value) === '[object Array]';
+    },
+
+    _isRetryable: function(status) {
+        return status == 0 || status == 429 || status >= 500;
+    },
+
+    _backoffMs: function(attempt) {
+        return attempt === 1 ? 1000 : 2000;
+    },
+
+    _sleep: function(ms) {
+        try {
+            if (typeof gs.sleep === 'function') {
+                gs.sleep(ms);
+                return;
+            }
+        } catch (e) {}
+
+        try {
+            Packages.java.lang.Thread.sleep(ms);
+        } catch (e2) {}
+    },
+
+    _truncate: function(value, maxLength) {
+        var text = String(value || '');
+        if (text.length > maxLength)
+            return text.substring(0, maxLength - 3) + '...';
+        return text;
+    },
+
+    _fail: function(code, retryable, message, attempts) {
+        return {
+            ok: false,
+            errorCode: code,
+            retryable: !!retryable,
+            errorMessage: message,
+            attempts: attempts || 0
+        };
     },
 
     type: 'GeminiUtils'
@@ -129,13 +409,13 @@ GeminiUtils.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2026-11-24 13:58:58</sys_created_on>
         <sys_id>dc8e36f08738db103d6bcbf5cebb35a8</sys_id>
-        <sys_mod_count>1</sys_mod_count>
-        <sys_name>GeminiUtils </sys_name>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>GeminiUtils</sys_name>
         <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
         <sys_update_name>sys_script_include_dc8e36f08738db103d6bcbf5cebb35a8</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2026-11-24 14:02:59</sys_updated_on>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
     </sys_script_include>
 </record_update>

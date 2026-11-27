@@ -4,5 +4,23 @@
         <element label="Match Rationale" max_length="4000" name="u_match_rationale" type="string"/>
         <element label="Student" mandatory="true" max_length="32" name="u_student" reference="sys_user" type="reference"/>
         <element label="Match Score" max_length="20" name="u_match_score" type="decimal"/>
+        <element label="Match Rank" name="u_match_rank" type="integer"/>
+        <element label="Matched Skills" max_length="2000" name="u_matched_skills" type="string"/>
+        <element label="Missing Requirements" max_length="2000" name="u_missing_requirements" type="string"/>
+        <element label="Score Breakdown" max_length="2000" name="u_score_breakdown" type="string"/>
+        <element label="Matched At" name="u_matched_at" type="date_time"/>
+        <element label="Matching Model Version" max_length="100" name="u_matching_model_version" type="string"/>
+        <element label="Match Error" max_length="1000" name="u_match_error" type="string"/>
+        <element choice="1" default="submitted" label="Application Status" max_length="40" name="u_application_status" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Submitted" sequence="100" value="submitted"/>
+                <element inactive_on_update="false" label="Under Review" sequence="200" value="under_review"/>
+                <element inactive_on_update="false" label="Accepted" sequence="300" value="accepted"/>
+                <element inactive_on_update="false" label="Rejected" sequence="400" value="rejected"/>
+            </choice>
+        </element>
+        <element label="Reviewed By" max_length="32" name="u_reviewed_by" reference="sys_user" type="reference"/>
+        <element label="Reviewed At" name="u_reviewed_at" type="date_time"/>
+        <element label="Review Note" max_length="2000" name="u_review_note" type="string"/>
     </element>
 </database>

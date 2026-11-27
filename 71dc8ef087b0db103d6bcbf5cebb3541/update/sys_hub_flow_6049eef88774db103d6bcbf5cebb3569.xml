@@ -2,7 +2,7 @@
     <sys_hub_flow action="INSERT_OR_UPDATE">
         <access>public</access>
         <acls/>
-        <active>true</active>
+        <active>false</active>
         <allow_high_security_roles>false</allow_high_security_roles>
         <annotation/>
         <attributes>browserActivatedIn=chrome,integrationActivatedIn=standalone,labelCacheCleanUpExecuted=true,timeFromCreateToActivate=351000,viewActivatedIn=naturalLanguage</attributes>
@@ -11,7 +11,7 @@
         <category/>
         <copied_from/>
         <copied_from_name/>
-        <description>Triggered by a file upload, this flow parses the resume with AI, updates the student's profile status.</description>
+        <description>DISABLED in Step 1. Resume status is now set by the Set Resume Pending On Attachment business rule and parsed by Parse Resume When Pending.</description>
         <display_name_after_preview/>
         <flow_priority>MEDIUM</flow_priority>
         <generation_source/>
@@ -24,7 +24,7 @@
         <outputs/>
         <pre_compiled>false</pre_compiled>
         <remote_trigger_id>ae9a6ebc8774db103d6bcbf5cebb35ee</remote_trigger_id>
-        <run_as>user</run_as>
+        <run_as>system</run_as>
         <run_with_roles/>
         <sc_callable>false</sc_callable>
         <show_draft_actions>false</show_draft_actions>
@@ -37,7 +37,7 @@
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
         <sys_id>6049eef88774db103d6bcbf5cebb3569</sys_id>
-        <sys_mod_count>12</sys_mod_count>
+        <sys_mod_count>13</sys_mod_count>
         <sys_name>Set Resume as Pending</sys_name>
         <sys_overrides/>
         <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
@@ -45,7 +45,7 @@
         <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
         <sys_update_name>sys_hub_flow_6049eef88774db103d6bcbf5cebb3569</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2026-11-24 13:02:24</sys_updated_on>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
         <type>flow</type>
         <updation_source/>
         <version>2</version>
@@ -54,7 +54,7 @@
     <sys_translated_text action="delete_multiple" query="documentkey=6049eef88774db103d6bcbf5cebb3569"/>
     <sys_variable_value action="delete_multiple" query="document_key=6049eef88774db103d6bcbf5cebb3569"/>
     <sys_flow_record_trigger action="INSERT_OR_UPDATE">
-        <active>true</active>
+        <active>false</active>
         <condition table="x_2311790_skills_0_student_profile">^EQ<item endquery="true" field="" goto="false" newquery="false" operator="=" or="false" value=""/>
         </condition>
         <name/>
@@ -494,7 +494,7 @@
     <sys_hub_flow_snapshot action="INSERT_OR_UPDATE">
         <access>public</access>
         <acls/>
-        <active>true</active>
+        <active>false</active>
         <allow_high_security_roles>false</allow_high_security_roles>
         <annotation/>
         <attributes>browserActivatedIn=chrome,integrationActivatedIn=standalone,labelCacheCleanUpExecuted=true,viewActivatedIn=naturalLanguage</attributes>
@@ -503,7 +503,7 @@
         <category/>
         <copied_from/>
         <copied_from_name/>
-        <description>Triggered by a file upload, this flow parses the resume with AI, updates the student's profile status.</description>
+        <description>DISABLED in Step 1. Resume status is now set by the Set Resume Pending On Attachment business rule and parsed by Parse Resume When Pending.</description>
         <flow_priority>MEDIUM</flow_priority>
         <internal_name>parse_resume_async</internal_name>
         <label_cache>[{"name":"trigger.table_name","label":"Trigger - Record Created or Updated➛Student Profile Table","reference":"x_2311790_skills_0_student_profile","reference_display":"Student Profile","type":"table_name","base_type":"table_name","choices":[{"order":0.0}],"usedInstances":{"78628c4e-08d2-4cb8-a233-ffb93bba76c0":["table_name"]},"attributes":{"test_input_hidden":"true"}},{"name":"trigger.current.sys_id","label":"Trigger - Record Created or Updated➛Student Profile Record➛Sys ID","reference":"","reference_display":"Sys ID","type":"GUID","base_type":"GUID","parent_table_name":"x_2311790_skills_0_student_profile","column_name":"sys_id","choices":[{"order":0.0}],"usedInstances":{"78628c4e-08d2-4cb8-a233-ffb93bba76c0":["record"]}}]</label_cache>
@@ -513,7 +513,7 @@
         <outputs/>
         <parent_flow display_value="Set Resume as Pending">6049eef88774db103d6bcbf5cebb3569</parent_flow>
         <remote_trigger_id/>
-        <run_as>user</run_as>
+        <run_as>system</run_as>
         <run_with_roles/>
         <sc_callable>false</sc_callable>
         <status>published</status>

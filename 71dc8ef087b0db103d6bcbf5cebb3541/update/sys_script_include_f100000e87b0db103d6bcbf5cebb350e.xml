@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_2311790_skills_0.StructuredSkillsWriter</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>Writes Gemini structured skills and tools to Skill Master and Student Skill.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>StructuredSkillsWriter</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var StructuredSkillsWriter = Class.create();
+StructuredSkillsWriter.prototype = {
+    initialize: function() {
+        this.maxResumeSkills = 10;
+        this.coreLimit = 3;
+        this.skillTable = 'x_2311790_skills_0_student_skill';
+        this.masterTable = 'x_2311790_skills_0_skill_master';
+    },
+
+    write: function(profileSysId, data) {
+        try {
+            if (!profileSysId)
+                return this._fail('INVALID_PROFILE', 'Missing profile sys_id.');
+
+            if (!data || !this._isArray(data.skills) || !this._isArray(data.tools))
+                return this._fail('INVALID_STRUCTURED_DATA', 'Structured skills data is missing or invalid.');
+
+            var profile = new GlideRecord('x_2311790_skills_0_student_profile');
+            if (!profile.get(profileSysId))
+                return this._fail('PROFILE_NOT_FOUND', 'Student profile was not found.');
+
+            this._deleteResumeRows(profileSysId);
+
+            var items = data.skills.concat(data.tools);
+            if (items.length > this.maxResumeSkills)
+                items = items.slice(0, this.maxResumeSkills);
+
+            var seen = {};
+            var skillRows = 0;
+            var toolRows = 0;
+
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                if (!item || typeof item.name !== 'string')
+                    continue;
+
+                var name = this._trim(item.name);
+                var normalized = item.normalizedName || this._normalizeName(name);
+                if (!name || !normalized)
+                    continue;
+
+                var key = 'k_' + normalized;
+                if (seen[key])
+                    continue;
+                seen[key] = true;
+
+                var masterSysId = this._upsertSkillMaster(name, normalized, item.skillType);
+                if (!masterSysId)
+                    return this._fail('SKILL_MASTER_WRITE_FAILED', 'Could not upsert Skill Master for ' + name);
+
+                var rank = i + 1;
+                if (!this._insertStudentSkill(profileSysId, masterSysId, item, rank))
+                    return this._fail('STUDENT_SKILL_WRITE_FAILED', 'Could not insert Student Skill for ' + name);
+
+                if (item.skillType === 'tool')
+                    toolRows++;
+                else
+                    skillRows++;
+            }
+
+            return {
+                ok: true,
+                skillRows: skillRows,
+                toolRows: toolRows
+            };
+        } catch (ex) {
+            return this._fail('EXCEPTION', 'StructuredSkillsWriter exception: ' + (ex.message || ex));
+        }
+    },
+
+    _deleteResumeRows: function(profileSysId) {
+        var gr = new GlideRecord(this.skillTable);
+        gr.addQuery('u_profile', profileSysId);
+        gr.addQuery('u_source', 'resume');
+        gr.deleteMultiple();
+    },
+
+    _upsertSkillMaster: function(name, normalized, skillType) {
+        var gr = new GlideRecord(this.masterTable);
+        gr.addQuery('u_normalized_name', normalized);
+        gr.setLimit(1);
+        gr.query();
+
+        if (gr.next()) {
+            var changed = false;
+            if (!gr.getValue('u_normalized_name')) {
+                gr.setValue('u_normalized_name', normalized);
+                changed = true;
+            }
+            if (!gr.getValue('u_category') || gr.getValue('u_category') != skillType) {
+                gr.setValue('u_category', skillType);
+                changed = true;
+            }
+            if (changed)
+                gr.update();
+            return gr.getUniqueValue();
+        }
+
+        gr.initialize();
+        gr.setValue('name', name);
+        gr.setValue('u_normalized_name', normalized);
+        gr.setValue('u_category', skillType);
+        return gr.insert();
+    },
+
+    _insertStudentSkill: function(profileSysId, masterSysId, item, rank) {
+        var existing = new GlideRecord(this.skillTable);
+        existing.addQuery('u_profile', profileSysId);
+        existing.addQuery('u_skill', masterSysId);
+        existing.setLimit(1);
+        existing.query();
+        if (existing.next())
+            return existing.getUniqueValue();
+
+        var gr = new GlideRecord(this.skillTable);
+        gr.initialize();
+        gr.setValue('u_profile', profileSysId);
+        gr.setValue('u_skill', masterSysId);
+        gr.setValue('u_skill_type', item.skillType || 'skill');
+        gr.setValue('u_proficiency', item.proficiency || '');
+        gr.setValue('u_confidence', item.confidence || 0);
+        gr.setValue('u_evidence', item.evidence || '');
+        gr.setValue('u_rank', rank);
+        gr.setValue('u_core', rank <= this.coreLimit);
+        gr.setValue('u_source', 'resume');
+        gr.setValue('u_extracted_at', gs.nowDateTime());
+        return gr.insert();
+    },
+
+    _normalizeName: function(value) {
+        return String(value || '')
+            .replace(/^\s+|\s+$/g, '')
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+    },
+
+    _trim: function(value) {
+        return String(value || '').replace(/^\s+|\s+$/g, '');
+    },
+
+    _isArray: function(value) {
+        return Object.prototype.toString.call(value) === '[object Array]';
+    },
+
+    _fail: function(code, message) {
+        return {
+            ok: false,
+            errorCode: code,
+            errorMessage: message
+        };
+    },
+
+    type: 'StructuredSkillsWriter'
+};
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_id>f100000e87b0db103d6bcbf5cebb350e</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>StructuredSkillsWriter</sys_name>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sys_script_include_f100000e87b0db103d6bcbf5cebb350e</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+    </sys_script_include>
+</record_update>

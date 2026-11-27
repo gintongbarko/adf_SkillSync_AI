@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sys_rest_message_fn">
-    <sys_rest_message_fn action="INSERT_OR_UPDATE">
+    <sys_rest_message_fn action="DELETE">
         <authentication_type>inherit_from_parent</authentication_type>
         <basic_auth_password/>
         <basic_auth_profile/>
@@ -31,3 +31,4 @@
         <use_mutual_auth>false</use_mutual_auth>
     </sys_rest_message_fn>
 </record_update>
+

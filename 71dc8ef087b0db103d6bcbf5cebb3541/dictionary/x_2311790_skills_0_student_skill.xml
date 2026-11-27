@@ -2,10 +2,32 @@
     <element attributes="enforce_dot_walk_cross_scope_access=true" db_object_id="7a311a3c87b0db103d6bcbf5cebb3581" label="Student Skill" max_length="40" name="x_2311790_skills_0_student_skill" type="collection">
         <element label="Profile" mandatory="true" max_length="32" name="u_profile" reference="x_2311790_skills_0_student_profile" type="reference"/>
         <element label="Skill" max_length="32" name="u_skill" reference="x_2311790_skills_0_skill_master" type="reference"/>
+        <element choice="1" label="Skill Type" max_length="40" name="u_skill_type" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Skill" sequence="100" value="skill"/>
+                <element inactive_on_update="false" label="Tool" sequence="200" value="tool"/>
+            </choice>
+        </element>
+        <element label="Proficiency" max_length="40" name="u_proficiency" type="string"/>
+        <element label="Confidence" name="u_confidence" type="decimal"/>
+        <element label="Evidence" max_length="500" name="u_evidence" type="string"/>
+        <element label="Rank" name="u_rank" type="integer"/>
+        <element label="Core" name="u_core" type="boolean"/>
+        <element choice="1" label="Source" max_length="40" name="u_source" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Resume" sequence="100" value="resume"/>
+                <element inactive_on_update="false" label="Manual" sequence="200" value="manual"/>
+            </choice>
+        </element>
+        <element label="Extracted At" name="u_extracted_at" type="date_time"/>
         <index name="index">
             <element name="u_profile"/>
         </index>
         <index name="index2">
+            <element name="u_skill"/>
+        </index>
+        <index name="u_profile_u_skill" unique="true">
+            <element name="u_profile"/>
             <element name="u_skill"/>
         </index>
     </element>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[]]></client_script>
+        <controller_as>c</controller_as>
+        <css><![CDATA[.skillsync-role-header {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid #c8d8de;
+  border-radius: 6px;
+  background: #f4f8fa;
+}
+.skillsync-role-header h2 {
+  margin: 0 0 6px;
+  color: #114b5f;
+  font-size: 20px;
+}
+.skillsync-role-header ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+]]></css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description>Step 5 role-aware greeting for the SkillSync dashboard.</description>
+        <docs/>
+        <field_list/>
+        <has_preview>false</has_preview>
+        <id>skillsync-role-header</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+}]]></link>
+        <name>SkillSync Role Header</name>
+        <option_schema/>
+        <public>false</public>
+        <roles>admin,x_2311790_skills_0.admin,x_2311790_skills_0.recruiter,x_2311790_skills_0.org_head,x_2311790_skills_0.student,x_2311790_skills_0.student_profile_user,x_2311790_skills_0.student_skill_user,x_2311790_skills_0.skill_master_user,x_2311790_skills_0.internship_user,x_2311790_skills_0.internship_application_user</roles>
+        <script><![CDATA[(function() {
+  data.role = 'Authenticated User';
+  data.greeting = 'Hello, Authenticated User.';
+  data.links = [];
+
+  if (!gs.isLoggedIn()) {
+    data.role = 'Guest';
+    data.greeting = 'Hello, Guest.';
+    return;
+  }
+
+  var roleLabels = [
+    { role: 'x_2311790_skills_0.admin', label: 'SkillSync Administrator' },
+    { role: 'admin', label: 'Administrator' },
+    { role: 'x_2311790_skills_0.recruiter', label: 'Recruiter' },
+    { role: 'x_2311790_skills_0.org_head', label: 'Org Head' },
+    { role: 'x_2311790_skills_0.student', label: 'Student' },
+    { role: 'x_2311790_skills_0.student_profile_user', label: 'Student Profile User' },
+    { role: 'x_2311790_skills_0.student_skill_user', label: 'Student Skill User' },
+    { role: 'x_2311790_skills_0.skill_master_user', label: 'Skill Master User' },
+    { role: 'x_2311790_skills_0.internship_user', label: 'Internship User' },
+    { role: 'x_2311790_skills_0.internship_application_user', label: 'Applicant' }
+  ];
+
+  for (var i = 0; i < roleLabels.length; i++) {
+    if (gs.hasRole(roleLabels[i].role)) {
+      data.role = roleLabels[i].label;
+      break;
+    }
+  }
+
+  data.greeting = 'Hello, ' + data.role + '.';
+
+  if (gs.hasRole('x_2311790_skills_0.recruiter') || gs.hasRole('x_2311790_skills_0.admin') || gs.hasRole('admin'))
+    data.links.push({ href: '/recruiter_review', label: 'Recruiter Review' });
+  if (gs.hasRole('x_2311790_skills_0.student') || gs.hasRole('x_2311790_skills_0.student_profile_user'))
+    data.links.push({ href: '/resume_upload', label: 'Upload Resume' });
+  if (gs.hasRole('x_2311790_skills_0.org_head') || gs.hasRole('x_2311790_skills_0.internship_user'))
+    data.links.push({ href: '/internships', label: 'Internships' });
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_id>e1000040000000000000000000000001</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>SkillSync Role Header</sys_name>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sp_widget_e1000040000000000000000000000001</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+        <template><![CDATA[<div class="skillsync-role-header">
+  <h2>{{ c.data.greeting }}</h2>
+  <ul ng-if="c.data.links.length">
+    <li ng-repeat="link in c.data.links"><a href="{{ link.href }}">{{ link.label }}</a></li>
+  </ul>
+</div>]]></template>
+    </sp_widget>
+    <sys_translated_text action="delete_multiple" query="documentkey=e1000040000000000000000000000001"/>
+</record_update>

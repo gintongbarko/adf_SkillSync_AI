@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sys_rest_message_fn_headers">
-    <sys_rest_message_fn_headers action="INSERT_OR_UPDATE">
+    <sys_rest_message_fn_headers action="DELETE">
         <name>Content-Type</name>
         <rest_message_function display_value="Generate Content">45b9f2b887f4db103d6bcbf5cebb3593</rest_message_function>
         <sys_class_name>sys_rest_message_fn_headers</sys_class_name>
@@ -17,3 +17,4 @@
         <value>application/json</value>
     </sys_rest_message_fn_headers>
 </record_update>
+

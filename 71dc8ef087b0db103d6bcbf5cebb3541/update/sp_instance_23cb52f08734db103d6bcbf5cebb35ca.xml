@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_instance">
     <sp_instance action="INSERT_OR_UPDATE">
-        <active>true</active>
+        <active>false</active>
         <advanced_placeholder_dimensions>false</advanced_placeholder_dimensions>
         <async_load>false</async_load>
         <async_load_device_type>desktop,tablet,mobile</async_load_device_type>
@@ -29,7 +29,7 @@
 	&lt;div class="skeleton-box skeleton-line medium"&gt;&lt;/div&gt;
 &lt;/div&gt;</placeholder_template>
         <preserve_placeholder_size>false</preserve_placeholder_size>
-        <roles/>
+        <roles>admin,x_2311790_skills_0.admin,x_2311790_skills_0.student,x_2311790_skills_0.student_profile_user</roles>
         <short_description/>
         <size>md</size>
         <sp_column/>

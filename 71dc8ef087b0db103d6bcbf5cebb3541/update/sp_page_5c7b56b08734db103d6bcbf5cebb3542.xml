@@ -9,7 +9,7 @@
         <internal>false</internal>
         <omit_watcher>false</omit_watcher>
         <public>false</public>
-        <roles/>
+        <roles>admin,x_2311790_skills_0.admin,x_2311790_skills_0.student,x_2311790_skills_0.student_profile_user</roles>
         <seo_script/>
         <short_description/>
         <sys_class_name>sp_page</sys_class_name>

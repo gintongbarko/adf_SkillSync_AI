@@ -27,26 +27,33 @@
         <rest_service_text/>
         <rest_variables/>
         <role_conditions/>
-        <script><![CDATA[var count = 0;
-var maxSkills = 10;
-var errorMessage = 'Max ' + maxSkills + ' skills per profile.';
-var gr = new GlideRecord('u_student_skill');
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    var maxResumeSkills = 10;
 
-gr.addQuery('u_profile', current.u_profile);
-gr.query();
-count = gr.getRowCount();
+    if (current.getValue('u_source') != 'resume')
+        return;
 
-if (count >= maxSkills) {
-    current.setAbortAction(true);
-    gs.addErrorMessage(errorMessage);
-}]]></script>
+    var profileSysId = current.getValue('u_profile');
+    if (!profileSysId)
+        return;
+
+    var gr = new GlideRecord('x_2311790_skills_0_student_skill');
+    gr.addQuery('u_profile', profileSysId);
+    gr.addQuery('u_source', 'resume');
+    gr.query();
+
+    if (gr.getRowCount() >= maxResumeSkills) {
+        current.setAbortAction(true);
+        gs.addErrorMessage('Max ' + maxResumeSkills + ' resume-derived skills per profile.');
+    }
+})(current, previous);]]></script>
         <sys_class_name>sys_script</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2026-11-24 10:59:31</sys_created_on>
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
         <sys_id>2a355e3487f0db103d6bcbf5cebb3536</sys_id>
-        <sys_mod_count>0</sys_mod_count>
+        <sys_mod_count>1</sys_mod_count>
         <sys_name>Cap Student Skills</sys_name>
         <sys_overrides/>
         <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
@@ -54,7 +61,7 @@ if (count >= maxSkills) {
         <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
         <sys_update_name>sys_script_2a355e3487f0db103d6bcbf5cebb3536</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2026-11-24 10:59:31</sys_updated_on>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
         <template/>
         <when>before</when>
     </sys_script>

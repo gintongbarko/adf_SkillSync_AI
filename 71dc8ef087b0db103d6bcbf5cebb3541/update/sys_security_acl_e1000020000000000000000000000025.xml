@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl">
+    <sys_security_acl action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <admin_overrides>true</admin_overrides>
+        <advanced>true</advanced>
+        <applies_to/>
+        <condition/>
+        <controlled_by_refs/>
+        <decision_type>allow</decision_type>
+        <description>Step 5 field ACL: only recruiters and admins can change application status after creation.</description>
+        <element>u_application_status</element>
+        <local_or_existing>Existing</local_or_existing>
+        <name>x_2311790_skills_0_internship_application</name>
+        <operation display_value="write">write</operation>
+        <script><![CDATA[var isAdmin = gs.hasRole('x_2311790_skills_0.admin') || gs.hasRole('admin');
+var isRecruiter = gs.hasRole('x_2311790_skills_0.recruiter');
+answer = isAdmin || isRecruiter;]]></script>
+        <security_attribute/>
+        <sys_class_name>sys_security_acl</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_id>e1000020000000000000000000000025</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_2311790_skills_0_internship_application.u_application_status.x_2311790_skills_0.admin</sys_name>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sys_security_acl_e1000020000000000000000000000025</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+        <type display_value="record">record</type>
+    </sys_security_acl>
+        <sys_security_acl_role action="INSERT_OR_UPDATE">
+            <sys_class_name>sys_security_acl_role</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+            <sys_id>e10000100000000000000000000000ab</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_2311790_skills_0_internship_application.x_2311790_skills_0.admin</sys_name>
+            <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+            <sys_security_acl display_value="x_2311790_skills_0_internship_application">e1000020000000000000000000000025</sys_security_acl>
+            <sys_update_name>sys_security_acl_role_e10000100000000000000000000000ab</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+            <sys_user_role display_value="x_2311790_skills_0.admin" name="x_2311790_skills_0.admin">35dc8ef087b0db103d6bcbf5cebb3573</sys_user_role>
+        </sys_security_acl_role>
+        <sys_security_acl_role action="INSERT_OR_UPDATE">
+            <sys_class_name>sys_security_acl_role</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+            <sys_id>e10000100000000000000000000000ac</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_2311790_skills_0_internship_application.x_2311790_skills_0.recruiter</sys_name>
+            <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+            <sys_security_acl display_value="x_2311790_skills_0_internship_application">e1000020000000000000000000000025</sys_security_acl>
+            <sys_update_name>sys_security_acl_role_e10000100000000000000000000000ac</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+            <sys_user_role display_value="x_2311790_skills_0.recruiter" name="x_2311790_skills_0.recruiter">e100000787b0db103d6bcbf5cebb3507</sys_user_role>
+        </sys_security_acl_role>
+</record_update>

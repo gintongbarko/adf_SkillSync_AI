@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_2311790_skills_0.MatchingEngine</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>Hybrid explainable matching for internship applications.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>MatchingEngine</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var MatchingEngine = Class.create();
+MatchingEngine.prototype = {
+    initialize: function() {
+        this.version = 'matching-hybrid-v1';
+        this.topN = parseInt(gs.getProperty('x_2311790_skills_0.matching_top_n') || '5', 10);
+        if (isNaN(this.topN) || this.topN <= 0)
+            this.topN = 5;
+        this.embedding = new x_2311790_skills_0.EmbeddingService();
+    },
+
+    scoreApplication: function(current) {
+        try {
+            if (!current)
+                return this._fail('INVALID_APPLICATION', 'Missing application record.');
+
+            var internshipSysId = current.getValue('internship');
+            var studentSysId = current.getValue('u_student');
+            if (!internshipSysId || !studentSysId)
+                return this._fail('INVALID_APPLICATION', 'Application must have an internship and student.');
+
+            var profile = this._findProfileForUser(studentSysId);
+            if (!profile)
+                return this._fail('PROFILE_NOT_FOUND', 'No student profile found for applicant.');
+
+            var assessment = this._assess(profile.getUniqueValue(), internshipSysId);
+            if (!assessment.ok) {
+                current.setValue('u_match_error', assessment.errorCode + ': ' + assessment.errorMessage);
+                return assessment;
+            }
+
+            current.setValue('u_match_score', assessment.score);
+            current.setValue('u_matched_skills', this._truncate(this._json(assessment.matchedSkills), 2000));
+            current.setValue('u_missing_requirements', this._truncate(this._json(assessment.missingRequirements), 2000));
+            current.setValue('u_score_breakdown', this._truncate(this._json(assessment.components), 2000));
+            current.setValue('u_match_rationale', this._truncate(assessment.rationale, 4000));
+            current.setValue('u_matched_at', gs.nowDateTime());
+            current.setValue('u_matching_model_version', this.version);
+            current.setValue('u_match_error', '');
+            return { ok: true, score: assessment.score, version: this.version };
+        } catch (ex) {
+            var message = 'MatchingEngine exception: ' + (ex.message || ex);
+            if (current)
+                current.setValue('u_match_error', this._truncate(message, 1000));
+            return this._fail('EXCEPTION', message);
+        }
+    },
+
+    rankApplicants: function(internshipSysId) {
+        try {
+            if (!internshipSysId)
+                return this._fail('INVALID_INTERNSHIP', 'Missing internship sys_id.');
+
+            var results = [];
+            var app = new GlideRecord('x_2311790_skills_0_internship_application');
+            app.addQuery('internship', internshipSysId);
+            app.query();
+
+            while (app.next()) {
+                var profile = this._findProfileForUser(app.getValue('u_student'));
+                if (!profile)
+                    continue;
+
+                var assessment = this._assess(profile.getUniqueValue(), internshipSysId);
+                if (!assessment.ok)
+                    continue;
+
+                results.push({
+                    applicationSysId: app.getUniqueValue(),
+                    studentSysId: app.getValue('u_student'),
+                    score: assessment.score,
+                    rationale: assessment.rationale,
+                    matchedSkills: assessment.matchedSkills,
+                    missingRequirements: assessment.missingRequirements
+                });
+            }
+
+            results.sort(function(a, b) {
+                return b.score - a.score;
+            });
+
+            var top = results.slice(0, this.topN);
+            for (var i = 0; i < top.length; i++)
+                top[i].rank = i + 1;
+
+            return { ok: true, results: top, count: top.length };
+        } catch (ex) {
+            return this._fail('EXCEPTION', 'MatchingEngine rank exception: ' + (ex.message || ex));
+        }
+    },
+
+    _findProfileForUser: function(userSysId) {
+        var profile = new GlideRecord('x_2311790_skills_0_student_profile');
+        profile.addQuery('u_user', userSysId);
+        profile.setLimit(1);
+        profile.query();
+        if (profile.next())
+            return profile;
+        return null;
+    },
+
+    _assess: function(profileSysId, internshipSysId) {
+        try {
+            var profile = new GlideRecord('x_2311790_skills_0_student_profile');
+            if (!profile.get(profileSysId))
+                return this._fail('PROFILE_NOT_FOUND', 'Student profile was not found.');
+
+            var internship = new GlideRecord('x_2311790_skills_0_internship');
+            if (!internship.get(internshipSysId))
+                return this._fail('INTERNSHIP_NOT_FOUND', 'Internship was not found.');
+
+            var required = this._dedupe(this._readSkillList(internship.getValue('u_required_skills')));
+            var preferred = this._dedupe(this._readSkillList(internship.getValue('u_preferred_skills')));
+            var skillMap = this._getSkillMap(profileSysId);
+            var matchedRequired = [];
+            var matchedPreferred = [];
+            var missing = [];
+            var requiredSet = {};
+            var preferredSet = {};
+
+            for (var i = 0; i < required.length; i++) {
+                var requiredKey = this._normalize(required[i]);
+                requiredSet[requiredKey] = true;
+                if (skillMap[requiredKey])
+                    matchedRequired.push(required[i]);
+                else
+                    missing.push(required[i]);
+            }
+
+            for (var j = 0; j < preferred.length; j++) {
+                var preferredKey = this._normalize(preferred[j]);
+                preferredSet[preferredKey] = true;
+                if (skillMap[preferredKey])
+                    matchedPreferred.push(preferred[j]);
+            }
+
+            var coreTotal = 0;
+            var coreMatched = 0;
+            for (var key in skillMap) {
+                if (!skillMap[key].core)
+                    continue;
+                coreTotal++;
+                if (requiredSet[key] || preferredSet[key])
+                    coreMatched++;
+            }
+
+            var candidates = this._dedupe(required.concat(preferred));
+            var matchedTools = [];
+            for (var k = 0; k < candidates.length; k++) {
+                var candidateKey = this._normalize(candidates[k]);
+                var row = skillMap[candidateKey];
+                if (row && row.type === 'tool')
+                    matchedTools.push(candidates[k]);
+            }
+            matchedTools = this._dedupe(matchedTools);
+
+            var minYears = parseFloat(internship.getValue('u_min_experience_years') || '0');
+            if (isNaN(minYears) || minYears < 0)
+                minYears = 0;
+
+            var years = parseFloat(profile.getValue('u_experience_years') || '0');
+            if (isNaN(years) || years < 0)
+                years = 0;
+
+            var similarity = null;
+            if (profile.getValue('embedding') && internship.getValue('u_embedding')) {
+                var profileDim = profile.getValue('u_embedding_dim');
+                var internshipDim = internship.getValue('u_embedding_dim');
+                if ((!profileDim || !internshipDim || profileDim == internshipDim))
+                    similarity = this.embedding.cosine(profile.getValue('embedding'), internship.getValue('u_embedding'));
+            }
+
+            var components = [];
+            if (required.length)
+                components.push({ label: 'required_skills', weight: 40, ratio: matchedRequired.length / required.length });
+            if (preferred.length)
+                components.push({ label: 'preferred_skills', weight: 10, ratio: matchedPreferred.length / preferred.length });
+            if (coreTotal)
+                components.push({ label: 'core_skills', weight: 10, ratio: coreMatched / coreTotal });
+            if (matchedTools.length)
+                components.push({ label: 'tools', weight: 10, ratio: 1, matched: matchedTools });
+            if (minYears > 0)
+                components.push({ label: 'experience', weight: 10, ratio: years >= minYears ? 1 : years / minYears });
+            if (similarity !== null)
+                components.push({ label: 'embedding', weight: 20, ratio: similarity });
+
+            var available = 0;
+            var earned = 0;
+            for (var m = 0; m < components.length; m++) {
+                available += components[m].weight;
+                components[m].points = Math.round(components[m].weight * components[m].ratio * 10) / 10;
+                earned += components[m].points;
+            }
+
+            var score = available ? Math.round((earned / available) * 1000) / 10 : 0;
+            var rationale = this._rationale(score, required, matchedRequired, missing, preferred, matchedPreferred, coreMatched, coreTotal, matchedTools, minYears, years, similarity);
+            var matchedSkills = this._dedupe(matchedRequired.concat(matchedPreferred));
+
+            return {
+                ok: true,
+                score: score,
+                matchedSkills: matchedSkills,
+                missingRequirements: missing,
+                rationale: rationale,
+                components: components
+            };
+        } catch (ex) {
+            return this._fail('EXCEPTION', 'MatchingEngine assessment exception: ' + (ex.message || ex));
+        }
+    },
+
+    _getSkillMap: function(profileSysId) {
+        var map = {};
+        var gr = new GlideRecord('x_2311790_skills_0_student_skill');
+        gr.addQuery('u_profile', profileSysId);
+        gr.orderBy('u_rank');
+        gr.query();
+
+        while (gr.next()) {
+            var master = new GlideRecord('x_2311790_skills_0_skill_master');
+            var name = '';
+            if (master.get(gr.getValue('u_skill')))
+                name = master.getValue('name') || '';
+            if (!name)
+                continue;
+
+            var key = this._normalize(name);
+            var core = gr.getValue('u_core') == 'true' || gr.getValue('u_core') == '1';
+            if (!map[key] || core)
+                map[key] = {
+                    name: name,
+                    type: gr.getValue('u_skill_type') || 'skill',
+                    core: core,
+                    confidence: parseFloat(gr.getValue('u_confidence') || '0')
+                };
+        }
+        return map;
+    },
+
+    _rationale: function(score, required, matchedRequired, missing, preferred, matchedPreferred, coreMatched, coreTotal, matchedTools, minYears, years, similarity) {
+        var text = 'Score ' + score + '/100.';
+        if (required.length)
+            text += ' Matched ' + matchedRequired.length + ' of ' + required.length + ' required skills';
+        if (matchedRequired.length)
+            text += ' (' + matchedRequired.join(', ') + ')';
+        text += '.';
+        if (missing.length)
+            text += ' Missing required skills: ' + missing.join(', ') + '.';
+        if (preferred.length)
+            text += ' Preferred matches: ' + matchedPreferred.length + ' of ' + preferred.length + '.';
+        if (coreTotal)
+            text += ' Core skill coverage: ' + coreMatched + ' of ' + coreTotal + '.';
+        if (matchedTools.length)
+            text += ' Tool overlap: ' + matchedTools.join(', ') + '.';
+        if (minYears > 0)
+            text += ' Experience: ' + years + ' years vs ' + minYears + ' required.';
+        if (similarity !== null)
+            text += ' Embedding similarity: ' + Math.round(similarity * 100) + '%.';
+        return text;
+    },
+
+    _readSkillList: function(raw) {
+        var text = String(raw || '');
+        if (!text)
+            return [];
+
+        try {
+            var parsed = JSON.parse(text);
+            if (Object.prototype.toString.call(parsed) === '[object Array]') {
+                var values = [];
+                for (var i = 0; i < parsed.length; i++) {
+                    var item = parsed[i];
+                    var name = typeof item === 'string' ? item : (item && item.name) || '';
+                    name = String(name).replace(/^\s+|\s+$/g, '');
+                    if (name)
+                        values.push(name);
+                }
+                return values;
+            }
+        } catch (e) {}
+
+        return this._parseFreeList(text);
+    },
+
+    _parseFreeList: function(text) {
+        var chunks = String(text || '').split(/[\n,;]+/);
+        var values = [];
+        for (var i = 0; i < chunks.length; i++) {
+            var value = chunks[i].replace(/^\s+|\s+$/g, '');
+            if (value)
+                values.push(value);
+        }
+        return values;
+    },
+
+    _dedupe: function(values) {
+        var seen = {};
+        var result = [];
+        for (var i = 0; i < values.length; i++) {
+            var key = this._normalize(values[i]);
+            if (!key || seen[key])
+                continue;
+            seen[key] = true;
+            result.push(values[i]);
+        }
+        return result;
+    },
+
+    _normalize: function(value) {
+        return String(value || '')
+            .replace(/^\s+|\s+$/g, '')
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+    },
+
+    _json: function(value) {
+        try {
+            return JSON.stringify(value);
+        } catch (ex) {
+            return '';
+        }
+    },
+
+    _truncate: function(value, maxLength) {
+        var text = String(value || '');
+        if (text.length > maxLength)
+            return text.substring(0, maxLength - 3) + '...';
+        return text;
+    },
+
+    _fail: function(code, message) {
+        return {
+            ok: false,
+            errorCode: code,
+            errorMessage: message
+        };
+    },
+
+    type: 'MatchingEngine'
+};
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-11-25 00:00:00</sys_created_on>
+        <sys_id>c100000687b0db103d6bcbf5cebb3506</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>MatchingEngine</sys_name>
+        <sys_package display_value="SkillSync" source="x_2311790_skills_0">71dc8ef087b0db103d6bcbf5cebb3541</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="SkillSync">71dc8ef087b0db103d6bcbf5cebb3541</sys_scope>
+        <sys_update_name>sys_script_include_c100000687b0db103d6bcbf5cebb3506</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-11-25 00:00:00</sys_updated_on>
+    </sys_script_include>
+</record_update>
